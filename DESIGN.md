@@ -31,7 +31,7 @@ Focus ring and text selection use `--p0` (yellow chalk).
 - **Board band**: lead name in their chalk colour with a hand-drawn underline (SVG path), the "leads · W44–45" line, a facts list (next up, your turn, next milestone) and the WhatsApp copy button.
 - **Tabs**: Plan, Fairness, Settings. Sticky, with arrow-key navigation, and the last tab is remembered.
 - **Plan grid**: a table with a period column, a lead column, then one column per person. Your own cells are dashed outline buttons that cycle on tap and take keys 1/2/3 and ↑/↓. Everyone else's cells are icons. On phones the other people collapse into a "Team" column of state dots.
-- **Lead cell**: chalk bar plus name plus a reason line ("fewest lead weeks (2)", "longest since leading"…), and lock/swap/conflict icons. It opens the swap menu, which lists everyone with their weeks so far and availability.
+- **Lead cell**: chalk bar plus name plus a reason line ("fewest lead weeks (2)", "continuing below target"…), and lock/swap/conflict icons. It opens the swap menu, which lists everyone with their weeks so far and availability.
 - **Milestone rows**: a dashed rule with a yellow flag above the period they fall in. The final presentation closes the table.
 - **Fairness bars**: solid = lead weeks done, hatched = planned (the hatching encodes "projected", it is not decoration).
 - **Icons**: one inline SVG sprite with a 1.9 stroke and round caps. No emoji as icons.

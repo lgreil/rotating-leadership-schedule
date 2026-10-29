@@ -12,11 +12,11 @@ A tool to coordinate rotation of leadership role in project work by accounting f
 - **Availability:** each person sets can't / little room / good per week by tapping their own column (keys 1/2/3 on a computer). A missing entry counts as little room.
 - **Plan** (`src/plan.ts`, pure functions with unit tests). For each period from the running one on, in order:
   1. Anyone who can't is left out.
-  2. Whoever has the fewest **lead weeks** wins, so a 2-week period counts double. This counts the history (including manual swaps, also future ones) plus the periods simulated before it.
-  3. Ties go to whoever led longest ago, then more room, then **first name** (so with no availability set, the order is alphabetical by first name).
+  2. The previous period's lead can continue if assigning them again keeps their total at or below the whole-week projected equal-share target across the remaining plan. This batches consecutive periods where it still fits the overall balance.
+  3. Otherwise, whoever has the fewest **lead weeks** wins, so a 2-week period counts double. Counts include history (including manual swaps, also future ones) plus periods simulated before it. Ties go to more room, then **first name**.
   4. If everyone can't, the person with the fewest weeks is picked anyway and the period is marked as a conflict.
 
-  Each pick carries the rule that decided it, which the page shows under the name ("fewest lead weeks (2)").
+  Each pick carries the rule that decided it, which the page shows under the name ("fewest lead weeks (2)" or "continuing below target").
 - **Locking:** an hourly cron checks the Europe/Berlin time. When a new period has started (Monday 00:05 local time, correct in summer and winter), it writes that period's lead to `history` with `locked: true`. It is idempotent, so a doubled or missed run does no harm.
 - **Swaps:** anyone signed in can change the lead of a period that isn't locked yet (`override: true`). Choosing "↺ automatic" removes the swap.
 - **Push notifications** (opt-in per device, sent by the same hourly cron, all times Europe/Berlin):

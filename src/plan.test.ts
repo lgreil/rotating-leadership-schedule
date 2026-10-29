@@ -43,7 +43,7 @@ describe("computePlan", () => {
     expect(leaders(plan)).toEqual(["charlie", "delta", "echo"]);
   });
 
-  it("breaks ties by who led longest ago", () => {
+  it("does not prioritize who led longest ago when lead weeks are tied", () => {
     const history = [
       locked("2026-W40", "echo"),
       locked("2026-W41", "delta"),
@@ -52,7 +52,17 @@ describe("computePlan", () => {
       locked("2026-W44", "alpha"),
     ];
     const plan = computePlan(members, {}, history, periods("2026-W45", 3));
-    expect(leaders(plan)).toEqual(["echo", "delta", "charlie"]);
+    expect(leaders(plan)).toEqual(["alpha", "bravo", "charlie"]);
+  });
+
+  it("batches periods evenly and continues the previous lead only up to the whole-week target", () => {
+    const plan = computePlan(members, {}, [], periods("2026-W46", 10));
+    expect(leaders(plan)).toEqual(["alpha", "alpha", "bravo", "bravo", "charlie", "charlie", "delta", "delta", "echo", "echo"]);
+    expect(plan[1].reason).toBe("continued-below-target");
+
+    const afterHistory = computePlan(members, {}, [locked("2026-W45", "alpha")], periods("2026-W46", 10));
+    expect(leaders(afterHistory).slice(0, 2)).toEqual(["alpha", "bravo"]);
+    expect(afterHistory[0].reason).toBe("continued-below-target");
   });
 
   it("then by higher capacity, then alphabetically", () => {
@@ -136,7 +146,7 @@ describe("computePlan", () => {
       ["charlie", "alphabetical"], // charlie, delta, echo: 0 weeks, never led, same room
       ["delta", "alphabetical"],
       ["echo", "fewest-weeks"],
-      ["alpha", "longest-ago"],
+      ["delta", "more-room"],
     ]);
     const only = computePlan(members, { alpha: { "2026-W46": 0 }, bravo: { "2026-W46": 0 }, charlie: { "2026-W46": 0 }, delta: { "2026-W46": 0 } }, [], periods("2026-W46", 1));
     expect(only[0]).toMatchObject({ leader: "echo", reason: "only-available" });

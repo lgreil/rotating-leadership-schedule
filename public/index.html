@@ -480,7 +480,7 @@ const I18N = {
     legendTip: "Tap your cells to change them. With a cell focused: <kbd>1</kbd> can't, <kbd>2</kbd> little room, <kbd>3</kbd> good, <kbd>↑</kbd><kbd>↓</kbd> move.",
     reason: {
       "fixed-locked": "locked", "fixed-swap": "swapped in", "only-available": "only one with room",
-      "fewest-weeks": (n) => `fewest lead weeks (${n})`, "longest-ago": "longest since leading",
+      "continued-below-target": "continuing below target", "fewest-weeks": (n) => `fewest lead weeks (${n})`,
       "more-room": "most room", alphabetical: "next by name", conflict: "nobody has room",
       "conflict-fixed": "can't that week",
     },
@@ -492,8 +492,8 @@ const I18N = {
     rulesTitle: "How the planner picks",
     rules: [
       "<b>Can't</b> that week? You're skipped.",
-      "Of the rest, whoever has the <b>fewest lead weeks</b> so far. Swaps count too, also future ones.",
-      "Tie: whoever led <b>longest ago</b>, then whoever has <b>more room</b>, then <b>by first name</b>.",
+      "The previous period's lead can <b>continue</b> if their total stays at or below the projected equal share of lead weeks for the rest of the plan.",
+      "Otherwise, whoever has the <b>fewest lead weeks</b> so far. Swaps count too, also future ones. Ties go to whoever has <b>more room</b>, then <b>by first name</b>.",
       "If nobody has room, the person with the fewest weeks gets it and the period is marked.",
       "Every Monday at 00:05 the running period is <b>locked</b>. Swaps are possible until then.",
     ],
@@ -559,7 +559,7 @@ const I18N = {
     legendTip: "Tippe deine Felder an, um sie zu ändern. Mit Fokus auf einem Feld: <kbd>1</kbd> kann nicht, <kbd>2</kbd> wenig Luft, <kbd>3</kbd> gut, <kbd>↑</kbd><kbd>↓</kbd> wechseln.",
     reason: {
       "fixed-locked": "festgeschrieben", "fixed-swap": "getauscht", "only-available": "als Einzige:r Luft",
-      "fewest-weeks": (n) => `wenigste Lead-Wochen (${n})`, "longest-ago": "am längsten her",
+      "continued-below-target": "weiter, noch unter Soll", "fewest-weeks": (n) => `wenigste Lead-Wochen (${n})`,
       "more-room": "am meisten Luft", alphabetical: "nach Vornamen dran", conflict: "niemand hat Luft",
       "conflict-fixed": "kann in der Woche nicht",
     },
@@ -571,8 +571,8 @@ const I18N = {
     rulesTitle: "So wählt der Planer",
     rules: [
       "Du <b>kannst nicht</b>? Dann wirst du übersprungen.",
-      "Von den übrigen, wer bisher die <b>wenigsten Lead-Wochen</b> hat. Tausche zählen mit, auch künftige.",
-      "Gleichstand: wer <b>am längsten nicht</b> Lead war, dann wer <b>mehr Luft</b> hat, dann <b>nach Vornamen</b>.",
+      "Der Lead der vorherigen Periode kann <b>weitermachen</b>, wenn die Gesamtzahl dadurch höchstens dem voraussichtlichen gleichen Anteil der verbleibenden Lead-Wochen entspricht.",
+      "Andernfalls: Wer bisher die <b>wenigsten Lead-Wochen</b> hat. Tausche zählen mit, auch künftige. Bei Gleichstand entscheidet, wer <b>mehr Luft</b> hat, dann <b>der Vorname</b>.",
       "Hat niemand Luft, bekommt es die Person mit den wenigsten Wochen, und die Periode wird markiert.",
       "Jeden Montag um 00:05 wird die laufende Periode <b>festgeschrieben</b>. Bis dahin kann getauscht werden.",
     ],
