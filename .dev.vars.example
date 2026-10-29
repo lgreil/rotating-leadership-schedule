@@ -1,0 +1,4 @@
+GITLAB_CLIENT_ID=your-gitlab-application-id
+GITLAB_CLIENT_SECRET=your-gitlab-application-secret
+SESSION_SECRET=change-me-to-a-long-random-string
+ALLOWED_USERS=user1,user2,user3,user4,user5

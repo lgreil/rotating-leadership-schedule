@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Team Lead Rotation</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="preload" href="/fonts/andika-700.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#173026">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Team Lead">
+<style>
+  @font-face { font-family: "Andika"; src: url("/fonts/andika-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Andika"; src: url("/fonts/andika-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+  :root {
+    color-scheme: dark;
+    /* the board */
+    --board: #1e3b30;
+    --board-deep: #173026;
+    --board-lift: #25473a;
+    --board-wipe: #2b5143;
+    --rule: rgba(236, 240, 230, 0.14);
+    --rule-strong: rgba(236, 240, 230, 0.28);
+    /* chalk */
+    --chalk: #ecf0e6;
+    --chalk-2: rgba(236, 240, 230, 0.74);
+    --chalk-3: rgba(236, 240, 230, 0.62);
+    /* availability */
+    --cant: #ff8f7e;
+    --little: #f1cb6f;
+    --good: #93e4b8;
+    /* one coloured chalk per person, assigned in name order */
+    --p0: #f4dd6b;
+    --p1: #f5a6c1;
+    --p2: #9fd0f5;
+    --p3: #c9b4f6;
+    --p4: #f7b26c;
+
+    --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --hand: "Andika", var(--ui);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --gutter: clamp(16px, 4vw, 40px);
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--board-deep); -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--board);
+    color: var(--chalk);
+    font: 15px/1.5 var(--ui);
+    font-variant-numeric: tabular-nums;
+    min-height: 100dvh;
+    scrollbar-color: var(--rule-strong) transparent;
+  }
+  ::selection { background: var(--p0); color: var(--board-deep); }
+  :focus-visible { outline: 2px solid var(--p0); outline-offset: 2px; border-radius: 4px; }
+  a { color: var(--chalk); text-underline-offset: 3px; text-decoration-color: var(--rule-strong); }
+  a:hover { text-decoration-color: var(--chalk); }
+  button { font: inherit; color: inherit; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  [hidden] { display: none !important; }
+  .icon.gh { fill: currentColor; stroke: none; }
+  .icon { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------------------------------------------------------- top bar */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: max(10px, env(safe-area-inset-top)) var(--gutter) 10px;
+    background: var(--board-deep);
+    border-bottom: 1px solid var(--rule);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font: 700 1.05rem/1 var(--hand); letter-spacing: 0.01em; }
+  .brand svg { width: 26px; height: 26px; }
+  .who { display: flex; align-items: center; gap: 14px; color: var(--chalk-2); font-size: 0.875rem; }
+  .who b { color: var(--chalk); font-weight: 600; }
+  @media (max-width: 520px) { .who { display: none; } }
+
+  /* ---------------------------------------------------------- the board */
+  .board {
+    display: grid; gap: 28px 48px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: clamp(24px, 5vw, 48px) var(--gutter) clamp(20px, 4vw, 36px);
+    border-bottom: 1px solid var(--rule);
+  }
+  @media (min-width: 900px) { .board { grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr); align-items: end; } }
+
+  .duty-name {
+    margin: 0; color: var(--lead, var(--chalk));
+    font: 700 clamp(3rem, 11vw, 6rem)/0.95 var(--hand);
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+  .duty-line { display: block; width: min(100%, 420px); height: 18px; margin: 10px 0 14px; color: var(--lead, var(--chalk)); }
+  .duty-line path { stroke: currentColor; stroke-width: 3.2; fill: none; stroke-linecap: round; stroke-dasharray: 460; stroke-dashoffset: 0; }
+  .duty-when { margin: 0; color: var(--chalk-2); font-size: 1.05rem; }
+  .duty-when b { color: var(--chalk); font-weight: 600; }
+
+  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0; border-top: 1px solid var(--rule); }
+  @media (min-width: 900px) { .facts { grid-template-columns: 1fr; border-top: 0; } }
+  .fact { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--rule); min-width: 0; }
+  @media (min-width: 900px) { .fact { display: grid; grid-template-columns: 9.5rem 1fr; align-items: baseline; padding: 12px 0; } }
+  .fact dt { color: var(--chalk-3); font-size: 0.8rem; }
+  .fact dd { margin: 2px 0 0; font: 700 1.25rem/1.2 var(--hand); color: var(--c, var(--chalk)); overflow-wrap: anywhere; }
+  .fact dd small { display: block; font: 400 0.82rem/1.4 var(--ui); color: var(--chalk-2); }
+  @media (max-width: 520px) { .fact dd { font-size: 1.05rem; } .fact { padding-right: 8px; } }
+
+  .board-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 40px; padding: 8px 16px; border-radius: 10px;
+    border: 1px solid var(--rule-strong); background: transparent; color: var(--chalk);
+    cursor: pointer; font-weight: 600; font-size: 0.92rem;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+  .btn:hover { background: var(--board-lift); border-color: var(--chalk-3); }
+  .btn.primary { background: var(--chalk); color: var(--board-deep); border-color: var(--chalk); }
+  .btn.primary:hover { background: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* ---------------------------------------------------------- tabs */
+  .tabs {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; gap: 4px; padding: 8px var(--gutter);
+    background: color-mix(in srgb, var(--board) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .tab {
+    border: 0; background: none; cursor: pointer;
+    padding: 8px 14px; border-radius: 8px;
+    color: var(--chalk-2); font-weight: 600;
+  }
+  .tab:hover { color: var(--chalk); background: var(--board-lift); }
+  .tab[aria-selected="true"] { color: var(--board-deep); background: var(--chalk); }
+
+  main { padding: 20px var(--gutter) 96px; max-width: 1200px; }
+  h2 { font: 700 1.45rem/1.2 var(--hand); margin: 0 0 6px; }
+  h3 { font: 700 1.1rem/1.3 var(--hand); margin: 0 0 6px; }
+  .lede { margin: 0 0 18px; color: var(--chalk-2); max-width: 65ch; }
+  .muted { color: var(--chalk-2); }
+  .small { font-size: 0.85rem; }
+
+  /* ---------------------------------------------------------- plan grid */
+  .grid-wrap { overflow-x: auto; margin: 0 calc(var(--gutter) * -1); padding: 0 var(--gutter); }
+  table.grid { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 640px; }
+  @media (max-width: 640px) { table.grid { min-width: 0; } }
+  .grid th, .grid td { border-bottom: 1px solid var(--rule); padding: 0; text-align: left; vertical-align: middle; }
+  .grid thead th { padding: 10px 8px; font-size: 0.8rem; font-weight: 600; color: var(--chalk-3); white-space: nowrap; }
+  .grid thead th.person { text-align: center; }
+  .grid thead .swatch { display: block; height: 3px; width: 28px; margin: 0 auto 6px; border-radius: 2px; background: var(--c); }
+  .grid thead .me { color: var(--chalk); }
+  .grid tbody tr.now td { background: var(--board-lift); }
+  .grid tbody tr.now td.when { box-shadow: inset 3px 0 0 var(--chalk); }
+  .grid tbody tr.past td { opacity: 0.55; }
+  .grid tbody tr.group-start td { border-top: 1px solid var(--rule-strong); }
+  td.when { padding: 10px 8px; white-space: nowrap; }
+  td.when b { display: block; font: 700 1rem/1.2 var(--hand); }
+  td.when span { color: var(--chalk-3); font-size: 0.8rem; }
+  td.person, td.team { text-align: center; padding: 6px 4px; }
+
+  .mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; }
+  .mark .icon { width: 17px; height: 17px; stroke-width: 2.4; }
+  .mark.v0 { color: var(--cant); }
+  .mark.v1 { color: var(--little); }
+  .mark.v2 { color: var(--good); }
+  .mark.unset { opacity: 0.55; }
+
+  button.cap {
+    display: inline-grid; place-items: center;
+    width: 44px; height: 40px; border-radius: 10px; cursor: pointer;
+    border: 1px dashed var(--rule-strong); background: transparent;
+    transition: background-color 0.15s, border-color 0.15s, transform 0.12s var(--ease);
+  }
+  button.cap:hover { background: var(--board-wipe); border-style: solid; }
+  button.cap:active { transform: scale(0.94); }
+  button.cap.set { border-style: solid; border-color: currentColor; }
+  button.cap.v0 { color: var(--cant); }
+  button.cap.v1 { color: var(--little); }
+  button.cap.v2 { color: var(--good); }
+  button.cap .icon { width: 18px; height: 18px; stroke-width: 2.4; }
+
+  td.lead { padding: 6px 8px; width: 15rem; min-width: 150px; }
+  .lead-btn, .lead-fixed {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 6px 10px; border-radius: 10px; text-align: left;
+    background: transparent; border: 1px solid transparent;
+  }
+  .lead-btn { cursor: pointer; }
+  .lead-btn:hover { background: var(--board-wipe); border-color: var(--rule-strong); }
+  .lead-bar { width: 4px; align-self: stretch; min-height: 30px; border-radius: 2px; background: var(--c); flex: none; }
+  .lead-text { min-width: 0; flex: 1; }
+  .lead-name { display: block; font: 700 1.08rem/1.2 var(--hand); color: var(--c); }
+  .lead-why { display: block; font-size: 0.78rem; color: var(--chalk-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lead-flags { display: flex; gap: 4px; color: var(--chalk-2); }
+  .lead-flags .warn { color: var(--cant); }
+  .lead-btn .chev { color: var(--chalk-3); }
+  .conflict .lead-why { color: var(--cant); }
+
+  .finale td { padding: 10px 8px; color: var(--chalk-2); border-top: 1px dashed var(--rule-strong); }
+  .finale .icon { width: 16px; height: 16px; vertical-align: -3px; color: var(--p0); }
+  .finale b { font: 700 1rem var(--hand); color: var(--chalk); }
+
+  .team-col, td.team { display: none; }
+  .team-dots { display: inline-flex; gap: 3px; }
+  .team-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--chalk-3); }
+  .team-dots i.v0 { background: var(--cant); }
+  .team-dots i.v1 { background: var(--little); }
+  .team-dots i.v2 { background: var(--good); }
+  @media (max-width: 640px) {
+    button.cap { width: 40px; }
+    .lead-btn .chev { display: none; }
+    .team-dots { gap: 2px; }
+    .team-dots i { width: 8px; height: 8px; }
+    .grid th.person:not(.mine), .grid td.person:not(.mine) { display: none; }
+    .team-col, td.team { display: table-cell; }
+    td.lead { width: auto; min-width: 0; padding: 6px 4px; }
+    .lead-btn, .lead-fixed { gap: 8px; padding: 6px; }
+    td.when { padding: 10px 6px; }
+    .lead-why { max-width: 34vw; }
+  }
+
+  .grid-tools { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: center; margin-bottom: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--chalk-2); font-size: 0.85rem; align-items: center; margin: 14px 0 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend .mark { width: 22px; height: 22px; }
+  .legend .tip { flex-basis: 100%; margin-top: 4px; }
+  @media (hover: none), (max-width: 640px) { .legend .tip { display: none; } }
+  kbd { font: 600 0.75rem var(--ui); padding: 1px 6px; border: 1px solid var(--rule-strong); border-bottom-width: 2px; border-radius: 5px; }
+
+  /* the signature: wipe the old name, write the new one in chalk */
+  @keyframes write { from { clip-path: inset(0 100% 0 0); filter: blur(2px); } to { clip-path: inset(0 0 0 0); filter: blur(0); } }
+  @keyframes draw { from { stroke-dashoffset: 460; } to { stroke-dashoffset: 0; } }
+  @keyframes wipe { 0% { background-position: 120% 0; } 100% { background-position: -20% 0; } }
+  .rewrite { animation: write 0.7s var(--ease) both; }
+  .duty-line.rewrite { animation: none; }
+  .duty-line.rewrite path { animation: draw 0.9s 0.25s var(--ease) both; }
+  td.lead.wiped {
+    background-image: linear-gradient(100deg, transparent 0%, var(--board-wipe) 30%, var(--board-wipe) 60%, transparent 90%);
+    background-size: 220% 100%; background-repeat: no-repeat;
+    animation: wipe 0.55s var(--ease) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rewrite, .duty-line.rewrite path, td.lead.wiped { animation: none !important; }
+  }
+
+  /* ---------------------------------------------------------- swap menu */
+  .menu {
+    position: absolute; z-index: 20; min-width: 260px; max-width: calc(100vw - 24px);
+    padding: 6px; border-radius: 12px;
+    background: var(--board-deep); border: 1px solid var(--rule-strong);
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55);
+  }
+  .menu p { margin: 6px 10px 8px; font-size: 0.8rem; color: var(--chalk-3); }
+  .menu button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 8px 10px; border: 0; border-radius: 8px; background: none; cursor: pointer; text-align: left;
+  }
+  .menu button:hover, .menu button:focus-visible { background: var(--board-lift); outline: none; }
+  .menu button[aria-checked="true"] { background: var(--board-wipe); }
+  .menu .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+  .menu .nm { flex: 1; font-weight: 600; }
+  .menu .meta { color: var(--chalk-3); font-size: 0.8rem; }
+  .menu .mark { width: 22px; height: 22px; }
+  .menu hr { border: 0; border-top: 1px solid var(--rule); margin: 6px 4px; }
+
+  /* ---------------------------------------------------------- fairness */
+  .bars { list-style: none; padding: 0; margin: 0 0 28px; display: grid; gap: 14px; max-width: 760px; }
+  .bars li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+  .bars .nm { font: 700 1.05rem var(--hand); color: var(--c); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bars .track { height: 14px; border-radius: 7px; background: rgba(236, 240, 230, 0.06); display: flex; overflow: hidden; }
+  .bars .done { background: var(--c); }
+  .bars .todo { background: repeating-linear-gradient(-45deg, var(--c) 0 3px, transparent 3px 7px); opacity: 0.55; }
+  .bars .nums { font-size: 0.85rem; color: var(--chalk-2); min-width: 6.5rem; text-align: right; }
+  .bars .nums b { color: var(--chalk); }
+  .key { display: flex; gap: 18px; margin: 0 0 18px; font-size: 0.85rem; color: var(--chalk-2); }
+  .key i { display: inline-block; width: 22px; height: 10px; border-radius: 5px; vertical-align: middle; margin-right: 6px; }
+  .key .k-done { background: var(--chalk-2); }
+  .key .k-todo { background: repeating-linear-gradient(-45deg, var(--chalk-2) 0 3px, transparent 3px 7px); }
+  .rules { margin: 0 0 28px; padding-left: 22px; max-width: 65ch; color: var(--chalk-2); }
+  .rules li { margin-bottom: 6px; }
+  .rules b { color: var(--chalk); }
+  .log { list-style: none; padding: 0; margin: 0; max-width: 560px; }
+  .log li { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+  .log .when { color: var(--chalk-3); font-size: 0.85rem; min-width: 8rem; }
+  .log .nm { font: 700 1rem var(--hand); color: var(--c); flex: 1; }
+  .log .icon { width: 15px; height: 15px; color: var(--chalk-3); }
+  @media (max-width: 520px) { .bars li { grid-template-columns: 5.5rem minmax(0, 1fr); } .bars .nums { grid-column: 2; text-align: left; } }
+
+  /* ---------------------------------------------------------- settings */
+  .settings { display: grid; gap: 0; max-width: 760px; }
+  .settings section { padding: 22px 0; border-bottom: 1px solid var(--rule); }
+  .settings section:first-child { padding-top: 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .cadence-now { list-style: none; padding: 0; margin: 0 0 16px; }
+  .cadence-now li { padding: 6px 0; display: flex; gap: 10px; }
+  .cadence-now b { min-width: 8.5rem; font-weight: 600; }
+  .field { display: grid; gap: 4px; font-size: 0.82rem; color: var(--chalk-3); }
+  select {
+    font: inherit; color: var(--chalk); background: var(--board-deep);
+    border: 1px solid var(--rule-strong); border-radius: 10px; min-height: 40px; padding: 6px 10px;
+  }
+  .seg { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid var(--rule-strong); border-radius: 11px; }
+  .seg button { border: 0; background: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; color: var(--chalk-2); font-weight: 600; }
+  .seg button[aria-pressed="true"] { background: var(--chalk); color: var(--board-deep); }
+  ol.steps { margin: 6px 0 12px; padding-left: 22px; color: var(--chalk-2); max-width: 65ch; }
+  ol.steps li { margin-bottom: 4px; }
+  details summary { cursor: pointer; color: var(--chalk-2); margin-top: 6px; }
+  details h3 { margin-top: 14px; }
+
+  /* ---------------------------------------------------------- toast */
+  .toast {
+    position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); z-index: 30;
+    transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+    max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 12px;
+    background: var(--chalk); color: var(--board-deep); font-weight: 600;
+    box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.2s, transform 0.35s var(--ease);
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.err { background: var(--cant); }
+
+  .empty { padding: 48px var(--gutter); max-width: 60ch; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-good" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-little" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-cant" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></symbol>
+  <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19h14"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95M19 4.5V8h-3.5"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 21V4M6 4h11l-2 4 2 4H6"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="2" y="5" width="28" height="19" rx="2.5" fill="#25473a" stroke="#ecf0e6" stroke-width="1.6"/>
+      <path d="M8 18c3-4 6-6 9-4s5 1 7-3" stroke="#f4dd6b" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M6 27.5h20" stroke="#ecf0e6" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <span>Team Lead Rotation</span>
+  </div>
+  <div class="who"><span><span data-t="signedInAs"></span> <b id="me"></b></span></div>
+</header>
+
+<section class="board" id="board" aria-labelledby="dutyName"></section>
+
+<nav class="tabs" role="tablist" aria-label="Views">
+  <button class="tab" role="tab" id="tab-plan" aria-controls="panel-plan" data-tab="plan" data-t="tabPlan"></button>
+  <button class="tab" role="tab" id="tab-fair" aria-controls="panel-fair" data-tab="fair" data-t="tabFair"></button>
+  <button class="tab" role="tab" id="tab-settings" aria-controls="panel-settings" data-tab="settings" data-t="tabSettings"></button>
+</nav>
+
+<main>
+  <div role="tabpanel" id="panel-plan" aria-labelledby="tab-plan" tabindex="-1">
+    <div class="grid-tools">
+      <h2 data-t="planTitle"></h2>
+      <button class="btn" id="togglePast" hidden></button>
+    </div>
+    <div class="grid-wrap"><table class="grid" id="grid"></table></div>
+    <p class="legend" id="legend"></p>
+  </div>
+
+  <div role="tabpanel" id="panel-fair" aria-labelledby="tab-fair" tabindex="-1" hidden>
+    <h2 data-t="fairTitle"></h2>
+    <p class="lede" id="fairLede"></p>
+    <p class="key"><span><i class="k-done"></i><span data-t="keyDone"></span></span><span><i class="k-todo"></i><span data-t="keyPlanned"></span></span></p>
+    <ol class="bars" id="bars"></ol>
+    <h3 data-t="rulesTitle"></h3>
+    <ol class="rules" id="rules"></ol>
+    <h3 data-t="logTitle"></h3>
+    <ul class="log" id="log"></ul>
+  </div>
+
+  <div role="tabpanel" id="panel-settings" aria-labelledby="tab-settings" tabindex="-1" hidden>
+    <div class="settings">
+      <section>
+        <h2 data-t="cadenceTitle"></h2>
+        <p class="lede" data-t="cadenceLede"></p>
+        <ul class="cadence-now" id="cadenceNow"></ul>
+        <form class="row" id="cadenceForm">
+          <label class="field"><span data-t="cadenceFrom"></span><select id="cadenceFrom"></select></label>
+          <div class="field"><span data-t="cadenceLength"></span>
+            <div class="seg" id="cadenceLen" role="group">
+              <button type="button" data-len="1" aria-pressed="true" data-t="len1"></button>
+              <button type="button" data-len="2" aria-pressed="false" data-t="len2"></button>
+            </div>
+          </div>
+          <button class="btn primary" type="submit" style="align-self:end" data-t="apply"></button>
+        </form>
+        <p class="small muted" id="cadenceNote" data-t="cadenceNote"></p>
+      </section>
+
+      <section>
+        <h2 data-t="notifications"></h2>
+        <p class="lede" id="pushInfo"></p>
+        <div class="row">
+          <button class="btn primary" id="pushToggle" hidden></button>
+          <button class="btn" id="pushTest" data-t="pushTest" hidden></button>
+        </div>
+      </section>
+
+      <section id="installSection">
+        <h2 data-t="installTitle"></h2>
+        <p class="lede" data-t="installWhy"></p>
+        <div id="installHere"></div>
+        <button class="btn primary" id="install" hidden><svg class="icon"><use href="#i-install"/></svg><span data-t="install"></span></button>
+        <details>
+          <summary data-t="installOther"></summary>
+          <div id="installOthers"></div>
+        </details>
+      </section>
+
+      <section>
+        <h2 data-t="language"></h2>
+        <div class="seg" id="langSeg" role="group">
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="de">Deutsch</button>
+        </div>
+      </section>
+
+      <section>
+        <h2 data-t="account"></h2>
+        <p class="muted"><span data-t="signedInAs"></span> <b id="me2"></b> · <a href="/auth/logout" data-t="signOut"></a></p>
+      </section>
+
+      <section>
+        <h2 data-t="about"></h2>
+        <p class="lede" data-t="aboutText"></p>
+        <a class="btn" href="https://github.com/lgreil/rotating-leadership-schedule" target="_blank" rel="noopener">
+          <svg class="icon gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span data-t="sourceCode"></span>
+        </a>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const I18N = {
+  en: {
+    signedInAs: "Signed in as", signOut: "Sign out",
+    tabPlan: "Plan", tabFair: "Fairness", tabSettings: "Settings",
+    onDuty: (range) => `leads · ${range}`,
+    until: (date, days) => `until ${date} · ${days === 1 ? "1 day" : `${days} days`} left`,
+    startsOn: (date) => `starts ${date}`,
+    nobody: "Nobody yet",
+    seasonOver: "The season is over",
+    seasonOverSub: "Thanks for leading. See you at the next project.",
+    nextUp: "Next up", yourTurn: "Your turn",
+    from: (date) => `from ${date}`,
+    nowYou: "You, right now", inWeeks: (n) => (n === 1 ? "next week" : `in ${n} weeks`), noTurn: "Not planned",
+    weeksLeft: (n) => (n === 1 ? "1 week to go" : `${n} weeks to go`),
+    daysLeft: (n) => (n === 0 ? "today" : n === 1 ? "tomorrow" : `in ${n} days`),
+    milestone: { intermediate: "Intermediate presentation", final: "Final presentation" },
+    copy: "Copy for WhatsApp", copied: "Copied: ",
+    whatsapp: (date, name) => `Lead from Monday ${date}: ${name}`,
+    planTitle: "Season plan", showPast: (n) => `Show ${n} past`, hidePast: "Hide past",
+    period: "Period", lead: "Lead", team: "Team", you: "you",
+    week: (n) => `W${n}`, weeks: (a, b) => `W${a}–${b}`,
+    cap: ["can't", "little room", "good"], capUnset: "not set (counts as little room)",
+    capLabel: (week, value) => `Week ${week}, your availability: ${value}. Change`,
+    legendTip: "Tap your cells to change them. With a cell focused: <kbd>1</kbd> can't, <kbd>2</kbd> little room, <kbd>3</kbd> good, <kbd>↑</kbd><kbd>↓</kbd> move.",
+    reason: {
+      "fixed-locked": "locked", "fixed-swap": "swapped in", "only-available": "only one with room",
+      "fewest-weeks": (n) => `fewest lead weeks (${n})`, "longest-ago": "longest since leading",
+      "more-room": "most room", alphabetical: "next by name", conflict: "nobody has room",
+      "conflict-fixed": "can't that week",
+    },
+    swapTitle: (range) => `Who leads ${range}?`, auto: "Back to automatic", weeksSoFar: (n) => `${n} wk`,
+    fairTitle: "Fairness",
+    fairLede: (total) => `Lead weeks per person over the whole season (${total} weeks). A two-week period counts as two.`,
+    keyDone: "done", keyPlanned: "planned",
+    nums: (done, planned) => `${done} done · ${planned} planned`,
+    rulesTitle: "How the planner picks",
+    rules: [
+      "<b>Can't</b> that week? You're skipped.",
+      "Of the rest, whoever has the <b>fewest lead weeks</b> so far. Swaps count too, also future ones.",
+      "Tie: whoever led <b>longest ago</b>, then whoever has <b>more room</b>, then <b>by first name</b>.",
+      "If nobody has room, the person with the fewest weeks gets it and the period is marked.",
+      "Every Monday at 00:05 the running period is <b>locked</b>. Swaps are possible until then.",
+    ],
+    logTitle: "Past leads", logEmpty: "Nothing locked yet.",
+    cadenceTitle: "Period length",
+    cadenceLede: "How long each lead period is. Change it from a future period on; everything before stays as it is.",
+    cadenceItem: (n) => (n === 1 ? "weekly" : `${n}-week periods`),
+    cadenceFromLabel: (range) => `from ${range}`,
+    cadenceFrom: "From period", cadenceLength: "Length", len1: "1 week", len2: "2 weeks", apply: "Apply",
+    cadenceNote: "Swaps that no longer line up with a period start are removed.",
+    cadenceSaved: "Period length updated.",
+    notifications: "Notifications",
+    pushInfo: "Wednesday: a reminder if your availability for next period is missing. Friday: a heads-up if you lead next. Monday: a message if a swap made you lead.",
+    pushOn: "Turn on notifications", pushOff: "Turn off", pushTest: "Send test", pushTestSent: "Test sent.",
+    pushEnabled: "On for this device.",
+    pushDenied: "Notifications are blocked in this browser's settings.",
+    pushUnsupported: "This browser can't receive push notifications.",
+    pushIos: "On iPhone/iPad, install the app first (below), then open it from the home screen to turn notifications on.",
+    pushServerOff: "Push isn't configured on the server.",
+    installTitle: "Install as app", install: "Install app",
+    installWhy: "Opens from your home screen or dock like an app. On iPhone it's required for notifications.",
+    installOther: "Other devices",
+    platforms: {
+      ios: ["iPhone / iPad", ["Open this page in Safari.", "Tap Share (square with arrow up).", "Tap “Add to Home Screen”, then “Add”.", "Open Team Lead from your home screen and turn on notifications."]],
+      android: ["Android", ["Open this page in Chrome.", "Tap ⋮ at the top right.", "Tap “Install app” (or “Add to Home screen”), then “Install”."]],
+      desktop: ["Chrome or Edge on a computer", ["Click the install icon at the right end of the address bar.", "Or: Chrome ⋮ → “Cast, save and share” → “Install page as app”; Edge … → “Apps” → “Install this site as an app”.", "Confirm with “Install”."]],
+      mac: ["Safari on a Mac", ["Safari 17 or newer: “File” → “Add to Dock…”.", "Confirm with “Add”."]],
+    },
+    language: "Language", account: "Account", about: "About", sourceCode: "Source code on GitHub",
+    aboutText: "Open source. Ideas, bugs and pull requests are welcome.", saved: "Saved.", undo: "Undo",
+    errors: {
+      unauthorized: "Your session ended. Signing you in again…", invalid_week: "That week doesn't exist.",
+      invalid_value: "That value isn't allowed.", not_a_member: "You're not part of the rotation, so you can't set availability.",
+      invalid_period: "That period doesn't exist (anymore). Reload the page.", period_in_past: "That period is already over.",
+      period_locked: "That period is locked; it can't be changed anymore.", unknown_person: "Unknown person.",
+      invalid_subscription: "The browser sent an invalid push subscription.", push_disabled: "Push isn't configured on the server.",
+      no_config: "No config in KV yet. Upload config.json (see README).", invalid_config: "The config in KV is invalid (see README).",
+      internal: "Something went wrong on the server. Try again.", network: "No connection. Your change wasn't saved.",
+    },
+  },
+  de: {
+    signedInAs: "Angemeldet als", signOut: "Abmelden",
+    tabPlan: "Plan", tabFair: "Fairness", tabSettings: "Einstellungen",
+    onDuty: (range) => `leitet · ${range}`,
+    until: (date, days) => `bis ${date} · noch ${days === 1 ? "1 Tag" : `${days} Tage`}`,
+    startsOn: (date) => `ab ${date}`,
+    nobody: "Noch niemand",
+    seasonOver: "Die Saison ist vorbei",
+    seasonOverSub: "Danke fürs Leiten. Bis zum nächsten Projekt.",
+    nextUp: "Als Nächstes", yourTurn: "Du bist dran",
+    from: (date) => `ab ${date}`,
+    nowYou: "Du, gerade jetzt", inWeeks: (n) => (n === 1 ? "nächste Woche" : `in ${n} Wochen`), noTurn: "Nicht geplant",
+    weeksLeft: (n) => (n === 1 ? "noch 1 Woche" : `noch ${n} Wochen`),
+    daysLeft: (n) => (n === 0 ? "heute" : n === 1 ? "morgen" : `in ${n} Tagen`),
+    milestone: { intermediate: "Zwischenpräsentation", final: "Abschlusspräsentation" },
+    copy: "Für WhatsApp kopieren", copied: "Kopiert: ",
+    whatsapp: (date, name) => `Lead ab Montag ${date}: ${name}`,
+    planTitle: "Saisonplan", showPast: (n) => `${n} vergangene zeigen`, hidePast: "Vergangene ausblenden",
+    period: "Periode", lead: "Lead", team: "Team", you: "du",
+    week: (n) => `KW ${n}`, weeks: (a, b) => `KW ${a}–${b}`,
+    cap: ["kann nicht", "wenig Luft", "gut"], capUnset: "nicht gesetzt (zählt als wenig Luft)",
+    capLabel: (week, value) => `KW ${week}, deine Verfügbarkeit: ${value}. Ändern`,
+    legendTip: "Tippe deine Felder an, um sie zu ändern. Mit Fokus auf einem Feld: <kbd>1</kbd> kann nicht, <kbd>2</kbd> wenig Luft, <kbd>3</kbd> gut, <kbd>↑</kbd><kbd>↓</kbd> wechseln.",
+    reason: {
+      "fixed-locked": "festgeschrieben", "fixed-swap": "getauscht", "only-available": "als Einzige:r Luft",
+      "fewest-weeks": (n) => `wenigste Lead-Wochen (${n})`, "longest-ago": "am längsten her",
+      "more-room": "am meisten Luft", alphabetical: "nach Vornamen dran", conflict: "niemand hat Luft",
+      "conflict-fixed": "kann in der Woche nicht",
+    },
+    swapTitle: (range) => `Wer übernimmt ${range}?`, auto: "Zurück auf automatisch", weeksSoFar: (n) => `${n} Wo.`,
+    fairTitle: "Fairness",
+    fairLede: (total) => `Lead-Wochen pro Person über die ganze Saison (${total} Wochen). Eine Zwei-Wochen-Periode zählt doppelt.`,
+    keyDone: "erledigt", keyPlanned: "geplant",
+    nums: (done, planned) => `${done} erledigt · ${planned} geplant`,
+    rulesTitle: "So wählt der Planer",
+    rules: [
+      "Du <b>kannst nicht</b>? Dann wirst du übersprungen.",
+      "Von den übrigen, wer bisher die <b>wenigsten Lead-Wochen</b> hat. Tausche zählen mit, auch künftige.",
+      "Gleichstand: wer <b>am längsten nicht</b> Lead war, dann wer <b>mehr Luft</b> hat, dann <b>nach Vornamen</b>.",
+      "Hat niemand Luft, bekommt es die Person mit den wenigsten Wochen, und die Periode wird markiert.",
+      "Jeden Montag um 00:05 wird die laufende Periode <b>festgeschrieben</b>. Bis dahin kann getauscht werden.",
+    ],
+    logTitle: "Bisherige Leads", logEmpty: "Noch nichts festgeschrieben.",
+    cadenceTitle: "Periodenlänge",
+    cadenceLede: "Wie lang eine Lead-Periode ist. Änderungen gelten ab einer künftigen Periode; alles davor bleibt.",
+    cadenceItem: (n) => (n === 1 ? "wöchentlich" : `${n}-Wochen-Perioden`),
+    cadenceFromLabel: (range) => `ab ${range}`,
+    cadenceFrom: "Ab Periode", cadenceLength: "Länge", len1: "1 Woche", len2: "2 Wochen", apply: "Übernehmen",
+    cadenceNote: "Tausche, die danach nicht mehr auf einen Periodenstart fallen, werden entfernt.",
+    cadenceSaved: "Periodenlänge geändert.",
+    notifications: "Benachrichtigungen",
+    pushInfo: "Mittwoch: Erinnerung, falls deine Verfügbarkeit für die nächste Periode fehlt. Freitag: Bescheid, wenn du als Nächstes leitest. Montag: Nachricht, falls du durch einen Tausch Lead wirst.",
+    pushOn: "Benachrichtigungen aktivieren", pushOff: "Deaktivieren", pushTest: "Test senden", pushTestSent: "Test gesendet.",
+    pushEnabled: "Auf diesem Gerät aktiv.",
+    pushDenied: "Benachrichtigungen sind in den Einstellungen dieses Browsers blockiert.",
+    pushUnsupported: "Dieser Browser kann keine Push-Benachrichtigungen empfangen.",
+    pushIos: "Auf iPhone/iPad zuerst die App installieren (unten), dann vom Home-Bildschirm öffnen und Benachrichtigungen aktivieren.",
+    pushServerOff: "Push ist auf dem Server nicht eingerichtet.",
+    installTitle: "Als App installieren", install: "App installieren",
+    installWhy: "Öffnet sich wie eine App vom Home-Bildschirm oder Dock. Auf dem iPhone nötig für Benachrichtigungen.",
+    installOther: "Andere Geräte",
+    platforms: {
+      ios: ["iPhone / iPad", ["Diese Seite in Safari öffnen.", "Auf „Teilen“ tippen (Quadrat mit Pfeil nach oben).", "„Zum Home-Bildschirm“ und dann „Hinzufügen“ tippen.", "Team Lead vom Home-Bildschirm öffnen und Benachrichtigungen aktivieren."]],
+      android: ["Android", ["Diese Seite in Chrome öffnen.", "Oben rechts auf ⋮ tippen.", "„App installieren“ (oder „Zum Startbildschirm hinzufügen“) und dann „Installieren“ tippen."]],
+      desktop: ["Chrome oder Edge am Computer", ["Rechts in der Adressleiste auf das Installieren-Symbol klicken.", "Oder: Chrome ⋮ → „Streamen, speichern und teilen“ → „Seite als App installieren“; Edge … → „Apps“ → „Diese Website als App installieren“.", "Mit „Installieren“ bestätigen."]],
+      mac: ["Safari auf dem Mac", ["Ab Safari 17: „Ablage“ → „Zum Dock hinzufügen …“.", "Mit „Hinzufügen“ bestätigen."]],
+    },
+    language: "Sprache", account: "Konto", about: "Über", sourceCode: "Quellcode auf GitHub",
+    aboutText: "Open Source. Ideen, Bugs und Pull Requests sind willkommen.", saved: "Gespeichert.", undo: "Rückgängig",
+    errors: {
+      unauthorized: "Sitzung abgelaufen. Du wirst neu angemeldet …", invalid_week: "Diese Woche gibt es nicht.",
+      invalid_value: "Dieser Wert ist nicht erlaubt.", not_a_member: "Du bist nicht Teil der Rotation und kannst keine Verfügbarkeit setzen.",
+      invalid_period: "Diese Periode gibt es nicht (mehr). Bitte neu laden.", period_in_past: "Diese Periode ist schon vorbei.",
+      period_locked: "Diese Periode ist festgeschrieben und kann nicht mehr geändert werden.", unknown_person: "Unbekannte Person.",
+      invalid_subscription: "Der Browser hat ein ungültiges Push-Abo geschickt.", push_disabled: "Push ist auf dem Server nicht eingerichtet.",
+      no_config: "Noch keine config im KV. config.json hochladen (siehe README).", invalid_config: "Die config im KV ist ungültig (siehe README).",
+      internal: "Auf dem Server ist etwas schiefgelaufen. Bitte nochmal versuchen.", network: "Keine Verbindung. Deine Änderung wurde nicht gespeichert.",
+    },
+  },
+};
+
+const ICON = { 0: "i-cant", 1: "i-little", 2: "i-good" };
+let state = null;
+let lang = initialLang();
+let L = I18N[lang];
+let showPast = false;
+let installPrompt = null;
+let lastLeaders = null; // period -> leader, to animate changes
+let cadenceLen = 1;
+
+// ---------------------------------------------------------------- helpers
+
+function initialLang() {
+  try { const s = localStorage.getItem("lang"); if (s in I18N) return s; } catch {}
+  return navigator.language?.toLowerCase().startsWith("de") ? "de" : "en";
+}
+const $ = (id) => document.getElementById(id);
+function el(tag, props = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else if (k === "style") e.style.cssText = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("aria-") || k.startsWith("data-") || k === "role") e.setAttribute(k, v);
+    else e[k] = v;
+  }
+  for (const c of children) if (c != null) e.append(c);
+  return e;
+}
+function icon(id, cls = "icon") {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("class", cls);
+  s.setAttribute("aria-hidden", "true");
+  const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  u.setAttribute("href", `#${id}`);
+  s.append(u);
+  return s;
+}
+
+const DAY = 86400000;
+function mondayOf(key) {
+  const [, y, w] = key.match(/^(\d{4})-W(\d{2})$/).map(Number);
+  const jan4 = Date.UTC(y, 0, 4);
+  const dow = new Date(jan4).getUTCDay() || 7;
+  return new Date(jan4 - (dow - 1) * DAY + (w - 1) * 7 * DAY);
+}
+const weekNo = (key) => Number(key.slice(6));
+function weekKeyOf(date) {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const year = d.getUTCFullYear();
+  const week = Math.ceil(((d - Date.UTC(year, 0, 1)) / DAY + 1) / 7);
+  return `${year}-W${String(week).padStart(2, "0")}`;
+}
+// presentations etc. from the config, plus the season end as the final one
+function milestones() {
+  const list = [...(state.milestones ?? [])];
+  if (state.seasonEnd && !list.some((m) => m.date === state.seasonEnd)) list.push({ date: state.seasonEnd, kind: "final" });
+  return list
+    .map((m) => ({ ...m, day: new Date(`${m.date}T00:00:00Z`), name: L.milestone[m.kind] ?? m.label ?? m.kind ?? "" }))
+    .sort((a, b) => a.day - b.day);
+}
+const weeksBetween = (a, b) => Math.round((mondayOf(b) - mondayOf(a)) / (7 * DAY));
+const locale = () => (lang === "de" ? "de-DE" : "en-GB");
+const fmt = (d, opts) => d.toLocaleDateString(locale(), { timeZone: "UTC", ...opts });
+const fmtShort = (d) => fmt(d, { weekday: "short", day: "numeric", month: "short" });
+const fmtFull = (d) => fmt(d, lang === "de" ? { day: "2-digit", month: "2-digit", year: "numeric" } : { day: "numeric", month: "short", year: "numeric" });
+const sundayOf = (key) => new Date(mondayOf(key).getTime() + 6 * DAY);
+const rangeOf = (p) => (p.weeks.length > 1 ? L.weeks(weekNo(p.weeks[0]), weekNo(p.weeks.at(-1))) : L.week(weekNo(p.week)));
+const dateRange = (p) => `${fmt(mondayOf(p.weeks[0]), { day: "numeric", month: "short" })} – ${fmt(sundayOf(p.weeks.at(-1)), { day: "numeric", month: "short" })}`;
+
+function todayUTC() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Berlin", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date());
+  const get = (t) => Number(parts.find((p) => p.type === t).value);
+  return new Date(Date.UTC(get("year"), get("month") - 1, get("day")));
+}
+
+// members in name order, each with a fixed chalk colour
+function people() {
+  return [...state.members].sort((a, b) => a.displayName.localeCompare(b.displayName, "de"));
+}
+function colorOf(username) {
+  const i = people().findIndex((m) => m.username === username);
+  return i < 0 ? "var(--chalk)" : `var(--p${i % 5})`;
+}
+const nameOf = (u) => state.members.find((m) => m.username === u)?.displayName ?? u;
+function shortOf(u) {
+  const first = (n) => n.trim().split(/\s+/)[0];
+  const mine = first(nameOf(u));
+  return state.members.filter((m) => first(m.displayName) === mine).length > 1 ? nameOf(u) : mine;
+}
+const capOf = (u, week) => state.capacities[u]?.[week];
+
+// ---------------------------------------------------------------- server
+
+async function call(method, path, body) {
+  let res;
+  try {
+    res = await fetch(path, {
+      method,
+      headers: body ? { "content-type": "application/json" } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new Error(L.errors.network);
+  }
+  if (res.status === 401) { location.href = "/auth/login"; throw new Error(L.errors.unauthorized); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(L.errors[data.error] || `${L.errors.internal} (${res.status})`);
+  return data;
+}
+
+let toastTimer;
+function toast(text, isError = false) {
+  const t = $("toast");
+  t.textContent = text;
+  t.classList.toggle("err", isError);
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), isError ? 5000 : 2200);
+}
+
+async function update(method, path, body, message = L.saved) {
+  try {
+    state = await call(method, path, body);
+    render();
+    toast(message);
+  } catch (e) {
+    toast(e.message, true);
+    render();
+  }
+}
+
+// ---------------------------------------------------------------- derived
+
+function derive() {
+  const today = state.today;
+  const plan = state.plan;
+  const ci = plan.findIndex((p) => p.weeks.includes(today));
+  const current = ci >= 0 ? plan[ci] : null;
+  const upcoming = plan.filter((p) => p.week > today);
+  const next = upcoming[0] ?? null;
+  const mine = plan.find((p) => p.leader === state.me && p.weeks.at(-1) >= today) ?? null;
+  const lastWeek = plan.at(-1)?.weeks.at(-1);
+  return { today, current, next, mine, lastWeek, before: !current && plan.length && plan[0].week > today };
+}
+
+// ---------------------------------------------------------------- render
+
+function setLang(next) {
+  lang = next;
+  L = I18N[lang];
+  try { localStorage.setItem("lang", lang); } catch {}
+  document.documentElement.lang = lang;
+  for (const e of document.querySelectorAll("[data-t]")) {
+    const v = L[e.dataset.t];
+    if (typeof v === "string") e.textContent = v;
+  }
+  for (const b of document.querySelectorAll("#langSeg button")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+  if (state) render();
+  renderInstall();
+  renderPush();
+}
+
+function render() {
+  $("me").textContent = nameOf(state.me);
+  $("me2").textContent = nameOf(state.me);
+  const changed = new Set();
+  const leaders = new Map(state.plan.map((p) => [p.week, p.leader]));
+  if (lastLeaders) for (const [w, l] of leaders) if (lastLeaders.get(w) !== l) changed.add(w);
+  renderBoard(changed, !lastLeaders);
+  renderGrid(changed);
+  renderFairness();
+  renderCadence();
+  lastLeaders = leaders;
+}
+
+function renderBoard(changed, first) {
+  const d = derive();
+  const board = $("board");
+  board.replaceChildren();
+
+  const duty = el("div", { class: "duty" });
+  const p = d.current ?? (d.before ? state.plan[0] : null);
+  if (p && p.leader) {
+    duty.style.setProperty("--lead", colorOf(p.leader));
+    const animate = first || changed.has(p.week);
+    duty.append(el("p", { class: "duty-name" + (animate ? " rewrite" : ""), id: "dutyName", textContent: shortOf(p.leader) }));
+    duty.append(underline(animate));
+    const end = sundayOf(p.weeks.at(-1));
+    const days = Math.max(1, Math.round((end - todayUTC()) / DAY) + 1);
+    duty.append(el("p", { class: "duty-when", html: `<b>${escapeHtml(L.onDuty(rangeOf(p)))}</b><br>${escapeHtml(d.current ? L.until(fmtShort(end), days) : L.startsOn(fmtShort(mondayOf(p.week))))}` }));
+  } else if (!state.plan.length || (d.lastWeek && state.today > d.lastWeek)) {
+    duty.append(el("p", { class: "duty-name", id: "dutyName", textContent: L.seasonOver }), underline(first));
+    duty.append(el("p", { class: "duty-when", textContent: L.seasonOverSub }));
+  } else {
+    duty.append(el("p", { class: "duty-name", id: "dutyName", textContent: L.nobody }), underline(first));
+  }
+  board.append(duty);
+
+  const facts = el("dl", { class: "facts" });
+  const fact = (label, value, sub, color) => {
+    const dd = el("dd", {}, value, sub ? el("small", { textContent: sub }) : null);
+    if (color) dd.style.setProperty("--c", color);
+    facts.append(el("div", { class: "fact" }, el("dt", { textContent: label }), dd));
+  };
+  const after = state.plan.find((x) => x.week > (p ? p.week : d.today));
+  if (after?.leader) fact(L.nextUp, shortOf(after.leader), L.from(fmtShort(mondayOf(after.week))), colorOf(after.leader));
+  if (state.isMember) {
+    if (d.mine && d.current && d.mine.week === d.current.week) fact(L.yourTurn, L.nowYou, rangeOf(d.mine), colorOf(state.me));
+    else if (d.mine) fact(L.yourTurn, rangeOf(d.mine), L.inWeeks(Math.max(1, weeksBetween(d.today, d.mine.week))), colorOf(state.me));
+    else fact(L.yourTurn, L.noTurn, "");
+  }
+  const coming = milestones().find((m) => m.day >= todayUTC());
+  if (coming) {
+    const days = Math.round((coming.day - todayUTC()) / DAY);
+    fact(coming.name, fmtShort(coming.day), days < 14 ? L.daysLeft(days) : L.weeksLeft(Math.ceil(days / 7)));
+  }
+  board.append(facts);
+
+  const actions = el("div", { class: "board-actions" });
+  const target = d.next ?? d.current;
+  if (target?.leader) {
+    const copy = el("button", { class: "btn primary", type: "button" }, icon("i-copy"), L.copy);
+    copy.addEventListener("click", () => copyText(L.whatsapp(fmtFull(mondayOf(target.week)), nameOf(target.leader))));
+    actions.append(copy);
+  }
+  board.append(actions);
+}
+
+function underline(animate) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "duty-line" + (animate ? " rewrite" : ""));
+  svg.setAttribute("viewBox", "0 0 420 18");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M3 11 C 60 6, 120 13, 180 9 S 300 5, 340 10 S 400 12, 417 7");
+  svg.append(path);
+  return svg;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+function reasonText(p) {
+  const r = L.reason;
+  if (p.fixed) {
+    if (p.conflict) return r["conflict-fixed"];
+    return p.locked ? r["fixed-locked"] : r["fixed-swap"];
+  }
+  if (p.conflict) return r.conflict;
+  const v = r[p.reason];
+  return typeof v === "function" ? v(p.leaderWeeks) : v;
+}
+
+function renderGrid(changed) {
+  const ppl = people();
+  const d = derive();
+  const table = $("grid");
+  table.replaceChildren();
+  const pastCount = state.plan.filter((p) => p.weeks.at(-1) < d.today).length;
+  const tp = $("togglePast");
+  tp.hidden = pastCount === 0;
+  tp.textContent = showPast ? L.hidePast : L.showPast(pastCount);
+
+  const head = el("tr", {}, el("th", { scope: "col", textContent: L.period }), el("th", { scope: "col", textContent: L.lead }));
+  for (const m of ppl) {
+    const mine = m.username === state.me;
+    const th = el("th", { scope: "col", class: "person" + (mine ? " mine me" : ""), title: m.displayName });
+    th.style.setProperty("--c", colorOf(m.username));
+    th.append(el("span", { class: "swatch" }), shortOf(m.username) + (mine ? ` (${L.you})` : ""));
+    head.append(th);
+  }
+  head.append(el("th", { scope: "col", class: "person team-col", textContent: L.team }));
+  table.append(el("thead", {}, head));
+
+  const body = el("tbody");
+  const marks = milestones();
+  const markRow = (m) => el("tr", { class: "finale" }, el("td", { colSpan: ppl.length + 3 }, icon("i-flag"), " ", el("b", { textContent: m.name }), ` · ${fmtShort(m.day)}`));
+  for (const p of state.plan) {
+    const past = p.weeks.at(-1) < d.today;
+    if (past && !showPast) continue;
+    // milestones sit right above their period (a two-week period can't be split); the season end closes the table
+    for (const m of marks) if (m.date !== state.seasonEnd && p.weeks.includes(weekKeyOf(m.day))) body.append(markRow(m));
+    p.weeks.forEach((week, i) => {
+      const tr = el("tr", { class: [i === 0 ? "group-start" : "", p.weeks.includes(d.today) ? "now" : "", past ? "past" : "", p.conflict ? "conflict" : ""].join(" ") });
+      tr.append(el("td", { class: "when" }, el("b", { textContent: L.week(weekNo(week)) }), el("span", { textContent: fmt(mondayOf(week), { day: "numeric", month: "short" }) })));
+      if (i === 0) tr.append(leadCell(p, past, changed.has(p.week)));
+      for (const m of ppl) {
+        const mine = m.username === state.me;
+        const td = el("td", { class: "person" + (mine ? " mine" : "") });
+        const v = capOf(m.username, week);
+        if (mine && state.isMember && !past) td.append(capButton(week, v));
+        else {
+          const shown = v ?? 1;
+          const mk = el("span", { class: `mark v${shown}` + (v === undefined ? " unset" : ""), title: `${m.displayName}: ${v === undefined ? L.capUnset : L.cap[v]}` }, icon(ICON[shown]));
+          td.append(mk);
+        }
+        tr.append(td);
+      }
+      const dots = el("span", { class: "team-dots", role: "img", "aria-label": ppl.filter((m) => m.username !== state.me).map((m) => `${m.displayName}: ${L.cap[capOf(m.username, week) ?? 1]}`).join(", ") });
+      for (const m of ppl) if (m.username !== state.me) dots.append(el("i", { class: `v${capOf(m.username, week) ?? 1}` }));
+      tr.append(el("td", { class: "team" }, dots));
+      body.append(tr);
+    });
+  }
+  for (const m of marks) if (m.date === state.seasonEnd) body.append(markRow(m));
+  table.append(body);
+
+  $("legend").replaceChildren(
+    ...[2, 1, 0].map((v) => el("span", {}, el("span", { class: `mark v${v}` }, icon(ICON[v])), L.cap[v])),
+    state.isMember ? el("span", { class: "tip", html: L.legendTip }) : null,
+  );
+}
+
+function capButton(week, v) {
+  const shown = v ?? 1;
+  const b = el("button", {
+    type: "button", class: `cap v${shown}` + (v !== undefined ? " set" : ""),
+    "data-week": week, "aria-label": L.capLabel(weekNo(week), v === undefined ? L.capUnset : L.cap[v]),
+    title: v === undefined ? L.capUnset : L.cap[v],
+  }, icon(ICON[shown]));
+  b.addEventListener("click", () => setCap(week, ((v ?? 1) + 2) % 3)); // good -> little -> can't -> good
+  b.addEventListener("keydown", (e) => {
+    if (e.key === "1" || e.key === "2" || e.key === "3") { e.preventDefault(); setCap(week, Number(e.key) - 1); }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const all = [...document.querySelectorAll("button.cap")];
+      all[all.indexOf(b) + (e.key === "ArrowDown" ? 1 : -1)]?.focus();
+    }
+  });
+  return b;
+}
+
+async function setCap(week, value) {
+  const before = state.capacities[state.me]?.[week];
+  if (before === value) return;
+  // optimistic: show it now, the server answers with the full new plan
+  state.capacities[state.me] = { ...state.capacities[state.me], [week]: value };
+  render();
+  document.querySelector(`button.cap[data-week="${week}"]`)?.focus();
+  try {
+    state = await call("PUT", "/api/capacity", { week, value });
+    render();
+    document.querySelector(`button.cap[data-week="${week}"]`)?.focus();
+  } catch (e) {
+    if (before === undefined) delete state.capacities[state.me][week];
+    else state.capacities[state.me][week] = before;
+    render();
+    toast(e.message, true);
+  }
+}
+
+function leadCell(p, past, changed) {
+  const td = el("td", { class: "lead" + (changed ? " wiped" : ""), rowSpan: p.weeks.length });
+  if (!p.leader) { td.append(el("span", { class: "muted", textContent: "—" })); return td; }
+  const text = el("span", { class: "lead-text" },
+    el("span", { class: "lead-name" + (changed ? " rewrite" : ""), textContent: shortOf(p.leader) }),
+    el("span", { class: "lead-why", textContent: reasonText(p) }));
+  const flags = el("span", { class: "lead-flags" });
+  if (p.locked) flags.append(icon("i-lock"));
+  if (p.override && !p.locked) flags.append(icon("i-swap"));
+  if (p.conflict) flags.append(icon("i-alert", "icon warn"));
+  const inner = [el("span", { class: "lead-bar" }), text, flags];
+  let box;
+  if (p.locked || past) {
+    box = el("div", { class: "lead-fixed" }, ...inner);
+  } else {
+    box = el("button", { type: "button", class: "lead-btn", "aria-haspopup": "menu", "aria-expanded": "false", "aria-label": `${L.lead} ${rangeOf(p)}: ${nameOf(p.leader)} (${reasonText(p)}). ${L.swapTitle(rangeOf(p))}` }, ...inner, icon("i-chev", "icon chev"));
+    box.addEventListener("click", () => openSwap(box, p));
+  }
+  box.style.setProperty("--c", colorOf(p.leader));
+  td.append(box);
+  return td;
+}
+
+// ---------------------------------------------------------------- swap menu
+
+let openMenu = null;
+function closeMenu(focusBack = true) {
+  if (!openMenu) return;
+  const { menu, anchor } = openMenu;
+  menu.remove();
+  anchor.setAttribute("aria-expanded", "false");
+  document.removeEventListener("pointerdown", outside, true);
+  openMenu = null;
+  if (focusBack) anchor.focus();
+}
+function outside(e) { if (openMenu && !openMenu.menu.contains(e.target) && !openMenu.anchor.contains(e.target)) closeMenu(false); }
+
+function openSwap(anchor, p) {
+  if (openMenu?.anchor === anchor) return closeMenu();
+  closeMenu(false);
+  const menu = el("div", { class: "menu", role: "menu", "aria-label": L.swapTitle(rangeOf(p)) });
+  menu.append(el("p", { textContent: L.swapTitle(rangeOf(p)) }));
+  const done = state.planned; // weeks over the season incl. this plan
+  for (const m of people()) {
+    const worst = Math.min(...p.weeks.map((w) => capOf(m.username, w) ?? 1));
+    const item = el("button", { type: "button", role: "menuitemradio", "aria-checked": String(m.username === p.leader) },
+      el("span", { class: "dot" }),
+      el("span", { class: "nm", textContent: m.displayName }),
+      el("span", { class: "meta", textContent: L.weeksSoFar(state.done[m.username] ?? 0) }),
+      el("span", { class: `mark v${worst}`, title: L.cap[worst] }, icon(ICON[worst])));
+    item.style.setProperty("--c", colorOf(m.username));
+    item.addEventListener("click", () => {
+      closeMenu();
+      if (m.username !== p.leader) update("POST", "/api/override", { week: p.week, leader: m.username });
+    });
+    menu.append(item);
+  }
+  if (p.override) {
+    menu.append(el("hr"));
+    const auto = el("button", { type: "button", role: "menuitem" }, icon("i-auto"), el("span", { class: "nm", textContent: L.auto }));
+    auto.addEventListener("click", () => { closeMenu(); update("POST", "/api/override", { week: p.week, leader: "" }); });
+    menu.append(auto);
+  }
+  document.body.append(menu);
+  const r = anchor.getBoundingClientRect();
+  const left = Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - menu.offsetWidth - 12);
+  menu.style.left = `${Math.max(12, left)}px`;
+  menu.style.top = `${window.scrollY + r.bottom + 6}px`;
+  anchor.setAttribute("aria-expanded", "true");
+  openMenu = { menu, anchor };
+  document.addEventListener("pointerdown", outside, true);
+  const items = [...menu.querySelectorAll("button")];
+  (items.find((i) => i.getAttribute("aria-checked") === "true") ?? items[0]).focus();
+  menu.addEventListener("keydown", (e) => {
+    const i = items.indexOf(document.activeElement);
+    if (e.key === "Escape") { e.preventDefault(); closeMenu(); }
+    if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+    if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+    if (e.key === "Tab") closeMenu(false);
+  });
+}
+
+// ---------------------------------------------------------------- fairness
+
+function renderFairness() {
+  const ppl = people();
+  const total = state.plan.reduce((n, p) => n + p.weeks.length, 0);
+  $("fairLede").textContent = L.fairLede(total);
+  const max = Math.max(1, ...ppl.map((m) => state.planned[m.username] ?? 0));
+  $("bars").replaceChildren(...ppl.map((m) => {
+    const done = state.done[m.username] ?? 0;
+    const planned = state.planned[m.username] ?? 0;
+    const li = el("li", {},
+      el("span", { class: "nm", textContent: shortOf(m.username), title: m.displayName }),
+      el("span", { class: "track", role: "img", "aria-label": `${m.displayName}: ${L.nums(done, planned - done)}` },
+        el("span", { class: "done", style: `width:${(done / max) * 100}%` }),
+        el("span", { class: "todo", style: `width:${((planned - done) / max) * 100}%` })),
+      el("span", { class: "nums", html: `<b>${done}</b> + ${planned - done} = <b>${planned}</b>` }));
+    li.style.setProperty("--c", colorOf(m.username));
+    return li;
+  }));
+  $("rules").replaceChildren(...L.rules.map((r) => el("li", { html: r })));
+
+  const log = [...state.history].filter((h) => h.locked).reverse();
+  $("log").replaceChildren(...(log.length ? log.map((h) => {
+    const p = state.plan.find((x) => x.week === h.week) ?? { week: h.week, weeks: [h.week] };
+    const li = el("li", {},
+      el("span", { class: "when", textContent: `${rangeOf(p)} · ${fmt(mondayOf(h.week), { day: "numeric", month: "short" })}` }),
+      el("span", { class: "nm", textContent: nameOf(h.leader) }),
+      h.override ? icon("i-swap") : null);
+    li.style.setProperty("--c", colorOf(h.leader));
+    return li;
+  }) : [el("li", { class: "muted", textContent: L.logEmpty })]));
+}
+
+// ---------------------------------------------------------------- settings: cadence
+
+function renderCadence() {
+  const byWeek = new Map(state.plan.map((p) => [p.week, p]));
+  $("cadenceNow").replaceChildren(...state.cadence.map((s, i) => {
+    const nextFrom = state.cadence[i + 1]?.from;
+    const firstP = byWeek.get(s.from) ?? { week: s.from, weeks: [s.from] };
+    return el("li", {}, el("b", { textContent: L.cadenceFromLabel(rangeOf(firstP)) }), el("span", { class: "muted", textContent: L.cadenceItem(s.periodWeeks) }));
+  }));
+  const sel = $("cadenceFrom");
+  const prev = sel.value;
+  const future = state.plan.filter((p) => p.week > state.today && !p.locked);
+  sel.replaceChildren(...future.map((p) => el("option", { value: p.week, textContent: `${rangeOf(p)} · ${dateRange(p)}` })));
+  if (future.some((p) => p.week === prev)) sel.value = prev;
+  $("cadenceForm").querySelector("button[type=submit]").disabled = !future.length;
+}
+
+$("cadenceLen").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-len]");
+  if (!b) return;
+  cadenceLen = Number(b.dataset.len);
+  for (const x of $("cadenceLen").querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
+});
+$("cadenceForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  update("PUT", "/api/cadence", { from: $("cadenceFrom").value, periodWeeks: cadenceLen }, L.cadenceSaved);
+});
+
+// ---------------------------------------------------------------- tabs
+
+function selectTab(name, focus = false) {
+  for (const t of document.querySelectorAll(".tab")) {
+    const on = t.dataset.tab === name;
+    t.setAttribute("aria-selected", String(on));
+    t.tabIndex = on ? 0 : -1;
+    $(t.getAttribute("aria-controls")).hidden = !on;
+    if (on && focus) t.focus();
+  }
+  try { localStorage.setItem("tab", name); } catch {}
+}
+for (const t of document.querySelectorAll(".tab")) {
+  t.addEventListener("click", () => selectTab(t.dataset.tab));
+  t.addEventListener("keydown", (e) => {
+    const tabs = [...document.querySelectorAll(".tab")];
+    const i = tabs.indexOf(t);
+    if (e.key === "ArrowRight") selectTab(tabs[(i + 1) % tabs.length].dataset.tab, true);
+    if (e.key === "ArrowLeft") selectTab(tabs[(i - 1 + tabs.length) % tabs.length].dataset.tab, true);
+  });
+}
+selectTab((() => { try { return localStorage.getItem("tab") || "plan"; } catch { return "plan"; } })());
+
+$("togglePast").addEventListener("click", () => { showPast = !showPast; renderGrid(new Set()); });
+$("langSeg").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-lang]");
+  if (!b || b.dataset.lang === lang) return;
+  setLang(b.dataset.lang);
+  // push texts are written on the server, so tell it about the new language
+  const sub = await currentSubscription();
+  if (sub) call("POST", "/api/push", { subscription: sub.toJSON(), lang }).catch(() => {});
+});
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(L.copied + text);
+  } catch {
+    prompt("", text);
+  }
+}
+
+// ---------------------------------------------------------------- install & push
+
+const swReady = "serviceWorker" in navigator
+  ? navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready).catch(() => null)
+  : Promise.resolve(null);
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+function platform() {
+  const ua = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  if (/android/i.test(ua)) return "android";
+  if (/macintosh/i.test(ua) && /safari/i.test(ua) && !/chrome|chromium|edg\//i.test(ua)) return "mac";
+  return "desktop";
+}
+function installSteps(key) {
+  const [name, steps] = L.platforms[key];
+  return el("div", {}, el("h3", { textContent: name }), el("ol", { class: "steps" }, ...steps.map((s) => el("li", { textContent: s }))));
+}
+function renderInstall() {
+  $("installSection").hidden = isStandalone();
+  const here = platform();
+  $("installHere").replaceChildren(installSteps(here));
+  $("installOthers").replaceChildren(...Object.keys(L.platforms).filter((k) => k !== here).map(installSteps));
+}
+window.addEventListener("appinstalled", () => ($("installSection").hidden = true));
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; $("install").hidden = false; });
+$("install").addEventListener("click", async () => { $("install").hidden = true; await installPrompt?.prompt(); installPrompt = null; });
+
+async function currentSubscription() {
+  const reg = await swReady;
+  return reg?.pushManager ? reg.pushManager.getSubscription() : null;
+}
+function b64ToBytes(s) {
+  const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+async function renderPush() {
+  const info = $("pushInfo"), toggle = $("pushToggle"), test = $("pushTest");
+  toggle.hidden = test.hidden = true;
+  const reg = await swReady;
+  if (!state) { info.textContent = L.pushInfo; return; }
+  if (!state.vapidPublicKey) { info.textContent = L.pushServerOff; return; }
+  if (!reg?.pushManager || !("Notification" in window)) {
+    info.textContent = platform() === "ios" && !isStandalone() ? L.pushIos : L.pushUnsupported;
+    return;
+  }
+  if (Notification.permission === "denied") { info.textContent = L.pushDenied; return; }
+  const sub = await reg.pushManager.getSubscription();
+  info.textContent = sub ? `${L.pushEnabled} ${L.pushInfo}` : L.pushInfo;
+  toggle.replaceChildren(icon("i-bell"), sub ? L.pushOff : L.pushOn);
+  toggle.className = sub ? "btn" : "btn primary";
+  toggle.hidden = false;
+  test.hidden = !sub;
+}
+$("pushToggle").addEventListener("click", async () => {
+  const btn = $("pushToggle");
+  btn.disabled = true;
+  try {
+    const reg = await swReady;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await call("DELETE", "/api/push", { endpoint: existing.endpoint });
+      await existing.unsubscribe();
+    } else {
+      if ((await Notification.requestPermission()) !== "granted") return;
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(state.vapidPublicKey) });
+      await call("POST", "/api/push", { subscription: sub.toJSON(), lang });
+    }
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false;
+    renderPush();
+  }
+});
+$("pushTest").addEventListener("click", async () => {
+  try { await call("POST", "/api/push/test", {}); toast(L.pushTestSent); } catch (e) { toast(e.message, true); }
+});
+
+// ---------------------------------------------------------------- start
+
+setLang(lang);
+call("GET", "/api/state")
+  .then(async (s) => {
+    state = s;
+    render();
+    renderPush();
+    const sub = await currentSubscription();
+    if (sub) call("POST", "/api/push", { subscription: sub.toJSON(), lang }).catch(() => {});
+  })
+  .catch((e) => {
+    $("board").replaceChildren(el("div", { class: "empty" }, el("p", { class: "duty-name", style: "font-size:2.2rem", textContent: "—" }), el("p", { class: "duty-when", textContent: e.message })));
+  });
+</script>
+</body>
+</html>

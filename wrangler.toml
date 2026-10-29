@@ -1,0 +1,31 @@
+name = "schedule"
+main = "src/index.ts"
+compatibility_date = "2026-10-29"
+
+# GitLab instance used for sign-in (git.nrw itself is only the project website).
+[vars]
+GITLAB_URL = "https://gitlab.git.nrw"
+
+# KV namespace IDs are not secret. When forking, replace it with the ID from
+# `npx wrangler kv namespace create LEAD` (see README).
+[[kv_namespaces]]
+binding = "LEAD"
+id = "c09b002116c142eca2d1ae6a6c4a1254"
+
+# Hourly: the worker checks itself whether a new period has started in
+# Europe/Berlin and locks its lead idempotently. So the lock happens on Monday
+# at 00:05 local time regardless of daylight saving time, and a missed run is
+# caught up an hour later. Push reminders use the same hourly tick.
+[triggers]
+crons = ["5 * * * *"]
+
+# Page, manifest and service worker are bundled as strings, icons as binary data.
+[[rules]]
+type = "Text"
+globs = ["**/*.html", "**/*.webmanifest", "**/public/sw.js"]
+fallthrough = false
+
+[[rules]]
+type = "Data"
+globs = ["**/*.png", "**/*.woff2"]
+fallthrough = false

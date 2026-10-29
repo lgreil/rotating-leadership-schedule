@@ -1,0 +1,17 @@
+{
+  "members": [
+    { "username": "user1", "displayName": "Person 1" },
+    { "username": "user2", "displayName": "Person 2" },
+    { "username": "user3", "displayName": "Person 3" },
+    { "username": "user4", "displayName": "Person 4" },
+    { "username": "user5", "displayName": "Person 5" }
+  ],
+  "cadence": [
+    { "from": "2026-W44", "periodWeeks": 2 },
+    { "from": "2026-W46", "periodWeeks": 1 }
+  ],
+  "seasonEnd": "2027-02-04",
+  "milestones": [
+    { "date": "2026-12-14", "kind": "intermediate" }
+  ]
+}
