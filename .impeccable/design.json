@@ -1,0 +1,15 @@
+{
+  "world": "classroom chalkboard",
+  "mode": "operate",
+  "colorScheme": "dark",
+  "colors": {
+    "board": "#1e3b30", "boardDeep": "#173026", "boardLift": "#25473a", "boardWipe": "#2b5143",
+    "chalk": "#ecf0e6", "chalk2": "rgba(236,240,230,0.74)", "chalk3": "rgba(236,240,230,0.62)",
+    "rule": "rgba(236,240,230,0.14)", "ruleStrong": "rgba(236,240,230,0.28)",
+    "cant": "#ff8f7e", "little": "#f1cb6f", "good": "#93e4b8",
+    "people": ["#f4dd6b", "#f5a6c1", "#9fd0f5", "#c9b4f6", "#f7b26c"]
+  },
+  "fonts": { "display": "Andika (self-hosted, 400/700)", "ui": "system-ui stack" },
+  "motion": { "signature": "wipe-and-rewrite on lead change", "ease": "cubic-bezier(0.16, 1, 0.3, 1)" },
+  "source": "public/index.html"
+}
