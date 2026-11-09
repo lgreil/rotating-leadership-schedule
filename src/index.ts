@@ -17,10 +17,11 @@ import {
   loadSubscriptions,
   saveCadence,
   saveHistory,
+  saveSkip,
   saveSubscriptions,
   type Config,
 } from "./store";
-import { berlinToday, isWeekKey, weekKeyOf } from "./weeks";
+import { addWeeks, berlinToday, isWeekKey, weekKeyOf } from "./weeks";
 
 export interface Env {
   LEAD: KVNamespace;
@@ -238,8 +239,7 @@ async function api(request: Request, url: URL, env: Env, user: string): Promise<
 
       const cadence = config.cadence.filter((s) => s.from < (from as string));
       if (cadence[cadence.length - 1]?.periodWeeks !== periodWeeks) cadence.push({ from: from as string, periodWeeks });
-      const lastWeek = config.periods[config.periods.length - 1].weeks.at(-1)!;
-      const periods = buildPeriods(cadence, lastWeek);
+      const periods = buildPeriods(cadence, config.lastWeek, config.skip);
 
       // swaps that no longer start a period are dropped, the rest take the new length
       const starts = new Map(periods.map((p) => [p.week, p.weeks.length]));
@@ -250,6 +250,34 @@ async function api(request: Request, url: URL, env: Env, user: string): Promise<
       await saveCadence(env.LEAD, cadence);
       data.history = await saveHistory(env.LEAD, history);
       data.config = { ...config, cadence, periods };
+      return json(buildState(env, user, data));
+    }
+
+    case "PUT /api/skip": {
+      // a week without a lead (holiday): periods end before it and start again after it
+      const { week, skip } = await readJson<{ week: unknown; skip: unknown }>(request);
+      if (typeof skip !== "boolean") throw new HttpError(400, "invalid_value");
+      const data = await loadData(env);
+      const { config } = data;
+      if (!isWeekKey(week) || week < config.cadence[0].from || week > config.lastWeek) throw new HttpError(400, "invalid_week");
+      if (week <= todayWeek()) throw new HttpError(400, "period_in_past");
+      const covers = (h: HistoryEntry) => h.week <= week && week <= addWeeks(h.week, (h.weeks ?? 1) - 1);
+      if (data.history.some((h) => h.locked && covers(h))) throw new HttpError(409, "period_locked");
+
+      const next = config.skip.filter((w) => w !== week);
+      if (skip) next.push(week);
+      next.sort();
+      const periods = buildPeriods(config.cadence, config.lastWeek, next);
+
+      // open swaps keep their period if it still starts there (with its new length), the rest are dropped
+      const starts = new Map(periods.map((p) => [p.week, p.weeks.length]));
+      const history = data.history
+        .filter((h) => h.locked || starts.has(h.week))
+        .map((h) => (h.locked ? h : { ...h, weeks: starts.get(h.week) }));
+
+      await saveSkip(env.LEAD, next);
+      data.history = await saveHistory(env.LEAD, history);
+      data.config = { ...config, skip: next, periods };
       return json(buildState(env, user, data));
     }
 
@@ -334,6 +362,9 @@ function buildState(env: Env, user: string, { config, history, capacities }: Dat
     cadence: config.cadence,
     seasonEnd: config.seasonEnd,
     milestones: config.milestones,
+    skip: config.skip,
+    firstWeek: config.cadence[0].from,
+    lastWeek: config.lastWeek,
     capacities,
     history,
     done,

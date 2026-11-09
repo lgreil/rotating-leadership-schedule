@@ -189,6 +189,23 @@ describe("buildPeriods", () => {
     // the season end cuts the last period short
     expect(buildPeriods([{ from: "2026-W46", periodWeeks: 2 }], "2026-W48").at(-1)?.weeks).toEqual(["2026-W48"]);
   });
+
+  it("leaves skipped weeks out and restarts periods after a break", () => {
+    const season = buildPeriods([{ from: "2026-W48", periodWeeks: 2 }], "2027-W04", ["2026-W51", "2026-W52", "2026-W53", "2027-W01"]);
+    expect(season.map((p) => p.weeks)).toEqual([
+      ["2026-W48", "2026-W49"],
+      ["2026-W50"],
+      ["2027-W02", "2027-W03"],
+      ["2027-W04"],
+    ]);
+  });
+
+  it("skips a segment's first week", () => {
+    expect(buildPeriods([{ from: "2026-W50", periodWeeks: 1 }], "2026-W52", ["2026-W50"]).map((p) => p.week)).toEqual([
+      "2026-W51",
+      "2026-W52",
+    ]);
+  });
 });
 
 describe("weeks", () => {

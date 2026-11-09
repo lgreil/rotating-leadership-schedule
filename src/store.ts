@@ -1,6 +1,7 @@
 // KV access. Every person has their own keys, so concurrent writes never clobber each other:
 //   config                                 – written by the admin seed (config.json)
 //   cadence                                – period lengths changed in the app; wins over config.cadence
+//   skip                                   – weeks without a lead (holidays) set in the app; wins over config.skip
 //   history                                – written by cron / swap endpoint
 //   cap:<username>, push:<username>        – written only by that user
 //   announced:<week>, reminded:<week>      – cron bookkeeping for notifications
@@ -22,6 +23,8 @@ interface RawConfig {
   seasonEnd?: string;
   /** dates worth showing in the plan, e.g. { "date": "2026-12-14", "kind": "intermediate" } */
   milestones?: Milestone[];
+  /** weeks without a lead, e.g. ["2026-W52", "2026-W53"] */
+  skip?: string[];
 }
 
 /** `kind` has a translated name in the page ("intermediate", "final"); `label` is shown for anything else. */
@@ -36,6 +39,10 @@ export interface Config {
   cadence: Segment[];
   seasonEnd: string | null;
   milestones: Milestone[];
+  /** weeks without a lead, sorted */
+  skip: string[];
+  /** last week of the season */
+  lastWeek: string;
   /** all periods of the season, chronological */
   periods: Period[];
 }
@@ -50,9 +57,10 @@ export class ConfigError extends Error {}
 const OPEN_END_WEEKS = 52;
 
 export async function loadConfig(kv: Store): Promise<Config | null> {
-  const [raw, override] = await Promise.all([
+  const [raw, override, skipOverride] = await Promise.all([
     kv.get<RawConfig>("config", "json"),
     kv.get<Segment[]>("cadence", "json"),
+    kv.get<string[]>("skip", "json"),
   ]);
   if (!raw) return null;
   if (!Array.isArray(raw.members)) throw new ConfigError("config.members missing");
@@ -70,6 +78,7 @@ export async function loadConfig(kv: Store): Promise<Config | null> {
     seasonEnd = raw.seasonEnd;
     lastWeek = weekKeyOf(end);
   }
+  const skip = normalizeSkip(skipOverride ?? raw.skip ?? []);
 
   return {
     members: raw.members.map((m) => ({
@@ -79,7 +88,9 @@ export async function loadConfig(kv: Store): Promise<Config | null> {
     cadence,
     seasonEnd,
     milestones: normalizeMilestones(raw.milestones ?? []),
-    periods: buildPeriods(cadence, lastWeek),
+    skip,
+    lastWeek,
+    periods: buildPeriods(cadence, lastWeek, skip),
   };
 }
 
@@ -107,6 +118,16 @@ export function normalizeCadence(segments: unknown): Segment[] {
       return { from: s.from as string, periodWeeks: Math.min(4, Math.max(1, Math.floor(Number(s.periodWeeks) || 1))) };
     })
     .sort((a, b) => (a.from < b.from ? -1 : 1));
+}
+
+export function normalizeSkip(weeks: unknown): string[] {
+  if (!Array.isArray(weeks)) throw new ConfigError("skip must be a list");
+  for (const w of weeks) if (!isWeekKey(w)) throw new ConfigError(`invalid skip week: ${w}`);
+  return [...new Set(weeks as string[])].sort();
+}
+
+export async function saveSkip(kv: Store, skip: string[]): Promise<void> {
+  await kv.put("skip", JSON.stringify(skip));
 }
 
 export async function saveCadence(kv: Store, cadence: Segment[]): Promise<void> {

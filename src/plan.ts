@@ -54,17 +54,28 @@ export interface PlannedPeriod extends Period {
 /**
  * Splits the season into periods. Each segment produces periods of its length from its `from`
  * week until the next segment starts; a period never crosses a segment border or `lastWeek`.
+ * Skipped weeks (holidays) belong to no period: a period ends before one and the next starts after it.
  */
-export function buildPeriods(segments: Segment[], lastWeek: string): Period[] {
+export function buildPeriods(segments: Segment[], lastWeek: string, skip: Iterable<string> = []): Period[] {
+  const skipped = new Set(skip);
   const sorted = [...segments].sort((a, b) => cmp(a.from, b.from));
   const end = addWeeks(lastWeek, 1);
   const periods: Period[] = [];
   sorted.forEach((segment, i) => {
     const limit = sorted[i + 1] && sorted[i + 1].from < end ? sorted[i + 1].from : end;
     const length = Math.max(1, Math.floor(segment.periodWeeks));
-    for (let week = segment.from; week < limit; week = addWeeks(week, length)) {
-      const weeks = Array.from({ length }, (_, j) => addWeeks(week, j)).filter((w) => w < limit);
-      periods.push({ week, weeks });
+    let week = segment.from;
+    while (week < limit) {
+      if (skipped.has(week)) {
+        week = addWeeks(week, 1);
+        continue;
+      }
+      const weeks: string[] = [];
+      while (weeks.length < length && week < limit && !skipped.has(week)) {
+        weeks.push(week);
+        week = addWeeks(week, 1);
+      }
+      periods.push({ week: weeks[0], weeks });
     }
   });
   return periods;

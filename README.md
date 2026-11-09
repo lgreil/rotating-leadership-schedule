@@ -8,7 +8,7 @@ A tool to coordinate rotation of leadership role in project work by accounting f
 
 ## How it works
 
-- **Season:** `config.cadence` splits the season into periods, e.g. one 2-week period first, then weekly. Anyone can switch to a different length from a future period on (Settings → Period length). The season ends at `config.seasonEnd`; `config.milestones` (e.g. an intermediate presentation) show up in the plan and on the board.
+- **Season:** `config.cadence` splits the season into periods, e.g. one 2-week period first, then weekly. Anyone can switch to a different length from a future period on (Settings → Period length). The season ends at `config.seasonEnd`; `config.milestones` (e.g. an intermediate presentation) show up in the plan and on the board. Holiday weeks can be skipped (Settings → Breaks, or `config.skip`): nobody leads them, and periods end before and restart after them.
 - **Availability:** each person sets can't / little room / good per week by tapping their own column (keys 1/2/3 on a computer). A missing entry counts as little room.
 - **Plan** (`src/plan.ts`, pure functions with unit tests). For each period from the running one on, in order:
   1. Anyone who can't is left out.
@@ -32,7 +32,8 @@ A tool to coordinate rotation of leadership role in project work by accounting f
 | --- | --- | --- |
 | `config` | `{ members: [{ username, displayName }], cadence: [{ from, periodWeeks }], seasonEnd, milestones: [{ date, kind }] }`, see `config.example.json` | you (seed, see below) |
 | `cadence` | period lengths changed in the app; wins over `config.cadence`, so re-uploading `config.json` doesn't undo them | cadence endpoint |
-| `history` | `[{ week, leader, locked, override, weeks }]` | cron, swap and cadence endpoints |
+| `skip` | weeks without a lead set in the app, e.g. `["2026-W52"]`; wins over `config.skip` | skip endpoint |
+| `history` | `[{ week, leader, locked, override, weeks }]` | cron, swap, cadence and skip endpoints |
 | `cap:<username>` | `{ "2026-W46": 0\|1\|2, … }` | only that user |
 | `push:<username>` | that user's push subscriptions (max 5 devices) | only that user |
 | `announced:<week>`, `reminded:<week>` | notification bookkeeping, expires after 90 days | cron |
@@ -43,6 +44,7 @@ KV is eventually consistent (up to about 60 s), which is fine here.
 
 - `GET /api/state` returns members, cadence, season end and milestones, all availabilities, the history, the plan for the whole season (past periods from history, the rest computed, each with its reason), lead weeks done and planned per person, your own username and the VAPID public key.
 - `PUT /api/cadence` with `{ from, periodWeeks }` (1 or 2) changes the period length from a future period on. Swaps that no longer start a period are dropped.
+- `PUT /api/skip` with `{ week, skip }` skips a future week (holiday) or brings it back. Periods are rebuilt around it; open swaps that no longer start a period are dropped.
 - `PUT /api/capacity` with `{ week, value }` writes only `cap:<you>`.
 - `POST /api/override` with `{ week, leader }` swaps the lead (`leader: ""` removes the swap). It only works for periods that aren't locked yet.
 - `POST /api/push` with `{ subscription, lang }`, `DELETE /api/push` with `{ endpoint }`, and `POST /api/push/test` manage notifications.

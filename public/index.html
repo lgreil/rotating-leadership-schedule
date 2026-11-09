@@ -301,6 +301,21 @@
   .cadence-now { list-style: none; padding: 0; margin: 0 0 16px; }
   .cadence-now li { padding: 6px 0; display: flex; gap: 10px; }
   .cadence-now b { min-width: 8.5rem; font-weight: 600; }
+  .weeks { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+  .weeks button {
+    display: grid; gap: 1px; min-width: 4.6rem; min-height: 44px; padding: 6px 10px; text-align: left;
+    font: inherit; font-weight: 600; color: var(--chalk); background: none; cursor: pointer;
+    border: 1px solid var(--rule-strong); border-radius: 10px;
+  }
+  .weeks button small { font-weight: 400; font-size: 0.75rem; color: var(--chalk-3); }
+  .weeks button:hover { border-color: var(--chalk-3); }
+  .weeks button[aria-pressed="true"] {
+    color: var(--chalk-2); border-style: dashed;
+    background: repeating-linear-gradient(-45deg, var(--rule) 0 3px, transparent 3px 8px);
+  }
+  .weeks button[aria-pressed="true"] b { text-decoration: line-through; }
+  .weeks button:disabled { opacity: 0.45; cursor: default; }
+  .finale.brk td { border-bottom: 1px dashed var(--rule-strong); }
   .field { display: grid; gap: 4px; font-size: 0.82rem; color: var(--chalk-3); }
   select {
     font: inherit; color: var(--chalk); background: var(--board-deep);
@@ -406,6 +421,12 @@
       </section>
 
       <section>
+        <h2 data-t="breaksTitle"></h2>
+        <p class="lede" data-t="breaksLede"></p>
+        <div class="weeks" id="skipWeeks" role="group"></div>
+      </section>
+
+      <section>
         <h2 data-t="notifications"></h2>
         <p class="lede" id="pushInfo"></p>
         <div class="row">
@@ -505,6 +526,11 @@ const I18N = {
     cadenceFrom: "From period", cadenceLength: "Length", len1: "1 week", len2: "2 weeks", apply: "Apply",
     cadenceNote: "Swaps that no longer line up with a period start are removed.",
     cadenceSaved: "Period length updated.",
+    breaksTitle: "Breaks",
+    breaksLede: "Weeks without a lead, e.g. over Christmas. Tap a week to skip it, tap again to bring it back. Periods end before a break and start again after it.",
+    breakOn: (w) => `Week ${w} skipped.`, breakOff: (w) => `Week ${w} is back in the plan.`,
+    breakLabel: (w, on) => `Week ${w}: ${on ? "skipped" : "in the plan"}`,
+    breakRow: (range) => `Break · ${range}`, breakNow: "Break", breakUntil: (date) => `no lead until ${date}`,
     notifications: "Notifications",
     pushInfo: "Wednesday: a reminder if your availability for next period is missing. Friday: a heads-up if you lead next. Monday: a message if a swap made you lead.",
     pushOn: "Turn on notifications", pushOff: "Turn off", pushTest: "Send test", pushTestSent: "Test sent.",
@@ -584,6 +610,11 @@ const I18N = {
     cadenceFrom: "Ab Periode", cadenceLength: "Länge", len1: "1 Woche", len2: "2 Wochen", apply: "Übernehmen",
     cadenceNote: "Tausche, die danach nicht mehr auf einen Periodenstart fallen, werden entfernt.",
     cadenceSaved: "Periodenlänge geändert.",
+    breaksTitle: "Pausen",
+    breaksLede: "Wochen ohne Lead, z. B. über Weihnachten. Tippe eine Woche an, um sie auszulassen, nochmal tippen holt sie zurück. Perioden enden vor einer Pause und beginnen danach neu.",
+    breakOn: (w) => `KW ${w} ausgelassen.`, breakOff: (w) => `KW ${w} ist wieder im Plan.`,
+    breakLabel: (w, on) => `KW ${w}: ${on ? "ausgelassen" : "im Plan"}`,
+    breakRow: (range) => `Pause · ${range}`, breakNow: "Pause", breakUntil: (date) => `kein Lead bis ${date}`,
     notifications: "Benachrichtigungen",
     pushInfo: "Mittwoch: Erinnerung, falls deine Verfügbarkeit für die nächste Periode fehlt. Freitag: Bescheid, wenn du als Nächstes leitest. Montag: Nachricht, falls du durch einen Tausch Lead wirst.",
     pushOn: "Benachrichtigungen aktivieren", pushOff: "Deaktivieren", pushTest: "Test senden", pushTestSent: "Test gesendet.",
@@ -675,6 +706,16 @@ function milestones() {
   return list
     .map((m) => ({ ...m, day: new Date(`${m.date}T00:00:00Z`), name: L.milestone[m.kind] ?? m.label ?? m.kind ?? "" }))
     .sort((a, b) => a.day - b.day);
+}
+// consecutive skipped weeks, e.g. [["2026-W52", "2026-W53", "2027-W01"]]
+function skipRuns() {
+  const runs = [];
+  for (const w of [...(state.skip ?? [])].sort()) {
+    const last = runs.at(-1);
+    if (last && weeksBetween(last.at(-1), w) === 1) last.push(w);
+    else runs.push([w]);
+  }
+  return runs;
 }
 const weeksBetween = (a, b) => Math.round((mondayOf(b) - mondayOf(a)) / (7 * DAY));
 const locale = () => (lang === "de" ? "de-DE" : "en-GB");
@@ -788,6 +829,7 @@ function render() {
   renderGrid(changed);
   renderFairness();
   renderCadence();
+  renderBreaks();
   lastLeaders = leaders;
 }
 
@@ -809,6 +851,9 @@ function renderBoard(changed, first) {
   } else if (!state.plan.length || (d.lastWeek && state.today > d.lastWeek)) {
     duty.append(el("p", { class: "duty-name", id: "dutyName", textContent: L.seasonOver }), underline(first));
     duty.append(el("p", { class: "duty-when", textContent: L.seasonOverSub }));
+  } else if (state.skip?.includes(d.today)) {
+    duty.append(el("p", { class: "duty-name", id: "dutyName", textContent: L.breakNow }), underline(first));
+    if (d.next) duty.append(el("p", { class: "duty-when", textContent: L.breakUntil(fmtShort(mondayOf(d.next.week))) }));
   } else {
     duty.append(el("p", { class: "duty-name", id: "dutyName", textContent: L.nobody }), underline(first));
   }
@@ -895,7 +940,17 @@ function renderGrid(changed) {
   const body = el("tbody");
   const marks = milestones();
   const markRow = (m) => el("tr", { class: "finale" }, el("td", { colSpan: ppl.length + 3 }, icon("i-flag"), " ", el("b", { textContent: m.name }), ` · ${fmtShort(m.day)}`));
+  const runs = skipRuns();
+  const breakRows = (before) => {
+    while (runs.length && (!before || runs[0][0] < before)) {
+      const run = runs.shift();
+      const r = { week: run[0], weeks: run };
+      if (run.at(-1) < d.today && !showPast) continue;
+      body.append(el("tr", { class: "finale brk" + (run.includes(d.today) ? " now" : "") }, el("td", { colSpan: ppl.length + 3 }, el("b", { textContent: L.breakRow(rangeOf(r)) }), ` · ${dateRange(r)}`)));
+    }
+  };
   for (const p of state.plan) {
+    breakRows(p.week);
     const past = p.weeks.at(-1) < d.today;
     if (past && !showPast) continue;
     // milestones sit right above their period (a two-week period can't be split); the season end closes the table
@@ -922,6 +977,7 @@ function renderGrid(changed) {
       body.append(tr);
     });
   }
+  breakRows();
   for (const m of marks) if (m.date === state.seasonEnd) body.append(markRow(m));
   table.append(body);
 
@@ -1111,6 +1167,27 @@ $("cadenceForm").addEventListener("submit", (e) => {
   e.preventDefault();
   update("PUT", "/api/cadence", { from: $("cadenceFrom").value, periodWeeks: cadenceLen }, L.cadenceSaved);
 });
+
+// ---------------------------------------------------------------- settings: breaks
+
+function renderBreaks() {
+  const skipped = new Set(state.skip ?? []);
+  const locked = new Set(state.plan.filter((p) => p.locked).flatMap((p) => p.weeks));
+  const weeks = [];
+  for (let w = state.firstWeek; w && w <= state.lastWeek; w = weekKeyOf(new Date(mondayOf(w).getTime() + 7 * DAY))) {
+    if (w > state.today) weeks.push(w);
+  }
+  $("skipWeeks").replaceChildren(...weeks.map((w) => {
+    const on = skipped.has(w);
+    const b = el("button", { type: "button", "aria-pressed": String(on), "aria-label": L.breakLabel(weekNo(w), on), disabled: locked.has(w) },
+      el("b", { textContent: L.week(weekNo(w)) }), el("small", { textContent: fmt(mondayOf(w), { day: "numeric", month: "short" }) }));
+    b.addEventListener("click", async () => {
+      await update("PUT", "/api/skip", { week: w, skip: !on }, on ? L.breakOff(weekNo(w)) : L.breakOn(weekNo(w)));
+      document.querySelector(`#skipWeeks button:nth-child(${weeks.indexOf(w) + 1})`)?.focus();
+    });
+    return b;
+  }));
+}
 
 // ---------------------------------------------------------------- tabs
 
